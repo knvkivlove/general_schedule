@@ -162,11 +162,10 @@
         padding: 8mm;
       }
 
-      /* ИЗМЕНЕННАЯ СЕТКА: align-content: start прижимает карточки вверх и не дает им растягиваться на весь А4 */
       .grid-container {
         display: grid;
-        align-items: stretch; /* Карточки в одном ряду одной высоты (по самой длинной) */
-        align-content: start; /* Убирает уродливое растягивание до конца страницы */
+        align-items: stretch;
+        align-content: start;
         height: 100%;
       }
 
@@ -232,7 +231,7 @@
 
       /* ОБЩИЙ КОНТЕНТ */
       .week-body {
-        padding: 8px 8px; /* Увеличен внутренний отступ для "воздуха" */
+        padding: 8px 8px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
@@ -312,7 +311,7 @@
         font-weight: bold;
         color: #222222;
         text-transform: uppercase;
-        margin-top: 12px; /* Добавлено больше пробела перед блоками */
+        margin-top: 12px;
         margin-bottom: 5px;
         border-bottom: 1px solid var(--border-gray);
         padding-bottom: 3px;
@@ -323,7 +322,7 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 4.5px; /* Немного увеличен интервал между строками */
+        margin-bottom: 4.5px;
         line-height: 1.25;
         width: 100%;
       }
@@ -344,7 +343,7 @@
       /* Блоки выходного дня */
       .weekend-block {
         margin-bottom: 20px;
-      } /* Значительно увеличен пробел между смысловыми частями */
+      }
 
       .weekend-public-speech {
         display: block;
@@ -359,7 +358,7 @@
       }
 
       .special-footer-block {
-        margin-top: 12px; /* Чуть больше пробела */
+        margin-top: 12px;
         margin-bottom: 4px;
         padding: 4px;
         border-radius: 4px;
@@ -385,7 +384,7 @@
         line-height: 1.2;
       }
 
-      /* Крупный блок Конгресса/Вечери (Даты сверху, всё красное) */
+      /* Крупный блок Конгресса/Вечери */
       .special-event-container {
         display: flex;
         flex-grow: 1;
@@ -578,7 +577,7 @@
         let [h, m] = chairmanTime.split(":").map(Number);
         if (isNaN(h) || isNaN(m)) return "";
         let date = new Date(2000, 0, 1, h, m);
-        date.setMinutes(date.getMinutes() + 100); // 1 час 40 минут
+        date.setMinutes(date.getMinutes() + 100);
         return (
           date.getHours().toString().padStart(2, "0") +
           ":" +
@@ -825,7 +824,6 @@
           const card = document.createElement("div");
           card.className = `week-card type-${week.type}`;
 
-          // Шапка (для спец. речи просто дата)
           card.innerHTML = `<div class="week-header"><span class="week-date">${week.date}</span></div>`;
 
           const body = document.createElement("div");
@@ -879,7 +877,7 @@
               week.type === "rs"
                 ? `
                         <div class="special-footer-block" style="margin-top: 10px;">
-                            <div class="row-item"><div class="col-left rs-text">Выступление РС</div><div class="col-time"></div><div class="col-right">${
+                            <div class="row-item"><div class="col-left rs-text">Выступление РС</div><div class="col-time"></div><div class="col-right rs-text">${
                               week.living.rsSpeech.assign
                             }</div></div>
                             <div class="rs-speech-container"><div class="rs-speech-title">${
@@ -902,13 +900,13 @@
                             <div class="row-item"><div class="col-left">Песня</div><div class="col-time"></div><div class="col-right">№ ${week.song1}</div></div>
                             <div class="row-item"><div class="col-left">Вступ. молитва</div><div class="col-time"></div><div class="col-right">${week.prayer1}</div></div>
                             
-                            <div class="section-title">💎 📜 СОКРОВИЩА ИЗ СЛОВА БОГА</div>
+                            <div class="section-title">💎 📜 -СОКРОВИЩА ИЗ СЛОВА БОГА-</div>
                             ${tHtml}
 
-                            <div class="section-title">📢 💼 ОТТАЧИВАЕМ НАВЫКИ СЛУЖЕНИЯ</div>
+                            <div class="section-title">📢 💼 -ОТТАЧИВАЕМ НАВЫКИ СЛУЖЕНИЯ-</div>
                             <div class="skills-container">${sHtml}</div>
 
-                            <div class="section-title">🌳 🌄 ХРИСТИАНСКАЯ ЖИЗНЬ</div>
+                            <div class="section-title">🌳 🌄 -ХРИСТИАНСКАЯ ЖИЗНЬ-</div>
                             <div class="cl-container">
                                 <div class="row-item"><div class="col-left">Песня</div><div class="col-time"></div><div class="col-right">№ ${week.living.song2}</div></div>
                                 ${lHtml}
@@ -942,8 +940,7 @@
                             <div class="weekend-block" style="margin-bottom: 0;">
                                 <div class="we-row"><div class="we-left rs-text">Заключ. речь</div><div class="we-right rs-text">${week.rs.name}</div></div>
                                 <div class="weekend-public-speech rs-text">«${week.rs.speech2}»</div>
-                                <div class="we-row" style="margin-top: 10px;"><div class="we-left">Песня</div><div class="we-right">№ ${week.rs.song}</div></div>
-                                <div class="we-row"><div class="we-left">Закл. молитва</div><div class="we-right">${week.rs.prayer}</div></div>
+                                <div class="we-row" style="margin-top: 14px;"><div class="we-left">Закл. молитва</div><div class="we-right">${week.rs.prayer}</div></div>
                             </div>
                         `;
             } else if (week.type === "special-speech") {
@@ -957,8 +954,7 @@
                                 <div class="section-title" style="margin-top: 0;">Изучение «Сторожевой Башни»</div>
                                 <div class="we-row"><div class="we-left">Ведущий</div><div class="we-right">${week.wt.conductor}</div></div>
                                 <div class="we-row"><div class="we-left">Чтец</div><div class="we-right">${week.wt.reader}</div></div>
-                                <div class="we-row" style="margin-top: 10px;"><div class="we-left">Песня</div><div class="we-right">№ ${week.footer.song}</div></div>
-                                <div class="we-row"><div class="we-left">Закл. молитва</div><div class="we-right">${week.footer.prayer}</div></div>
+                                <div class="we-row" style="margin-top: 14px;"><div class="we-left">Закл. молитва</div><div class="we-right">${week.footer.prayer}</div></div>
                             </div>
                         `;
             } else {
@@ -972,15 +968,14 @@
                                 <div class="section-title" style="margin-top: 0;">Изучение «Сторожевой Башни»</div>
                                 <div class="we-row"><div class="we-left">Ведущий</div><div class="we-right">${week.wt.conductor}</div></div>
                                 <div class="we-row"><div class="we-left">Чтец</div><div class="we-right">${week.wt.reader}</div></div>
-                                <div class="we-row" style="margin-top: 10px;"><div class="we-left">Песня</div><div class="we-right">№ ${week.footer.song}</div></div>
-                                <div class="we-row"><div class="we-left">Закл. молитва</div><div class="we-right">${week.footer.prayer}</div></div>
+                                <div class="we-row" style="margin-top: 14px;"><div class="we-left">Закл. молитва</div><div class="we-right">${week.footer.prayer}</div></div>
                             </div>
                         `;
             }
 
             body.innerHTML = `
                         <div class="normal-program-wrapper">
-                            <div class="weekend-block" style="margin-bottom: 16px; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px;">
+                            <div class="weekend-block" style="margin-bottom: 12px; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px;">
                                 <div class="we-row"><div class="we-left">Председатель</div><div class="we-right">${week.chairman}</div></div>
                                 <div class="we-row"><div class="we-left">Песня</div><div class="we-right">№ ${week.song1}</div></div>
                                 <div class="we-row"><div class="we-left">Вступ. молитва</div><div class="we-right">${week.prayer1}</div></div>

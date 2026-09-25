@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>Расписание встреч собрания</title>
+    <style>
+      :root {
+        --bg-color: #f4f6f9;
+        --card-bg: #ffffff;
+        --main-blue: #0066b3;
+        --text-dark: #000000;
+        --text-blue: #0066b3;
+        --muted-gray: #666666;
+        --rs-red: #d32f2f;
+        --pastel-blue: #e6f2fa;
+        --pastel-red: #fdf2f2;
+        --border-gray: #cccccc;
+        --special-bg: #fff4e5;
+        --special-border: #e65100;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-dark);
+        margin: 0;
+        padding: 10px 0;
+      }
+
+      /* НАВИГАЦИЯ (ТАБЫ) */
+      .tabs-container {
+        width: 100%;
+        max-width: 297mm;
+        margin: 0 auto 10px auto;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+      .tab-btn {
+        padding: 12px 24px;
+        font-size: 11pt;
+        font-weight: bold;
+        background-color: #ffffff;
+        color: var(--main-blue);
+        border: 2px solid var(--main-blue);
+        border-radius: 6px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: background-color 0.2s;
+      }
+      .tab-btn.active {
+        background-color: var(--main-blue);
+        color: #ffffff;
+      }
+
+      .page-wrapper {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 5px;
+        overflow-x: hidden;
+      }
+
+      .controls-panel {
+        width: 100%;
+        max-width: 297mm;
+        background: white;
+        padding: 10px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      @media (min-width: 600px) {
+        .controls-panel {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+        }
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        background-color: var(--main-blue);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        font-size: 10pt;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+      }
+      .btn-secondary {
+        background-color: #555555;
+      }
+      .btn-navigation {
+        background-color: #2e7d32;
+      }
+      .btn-danger {
+        background-color: var(--rs-red);
+      }
+      .btn:disabled {
+        background-color: #cccccc !important;
+        color: #888888 !important;
+        cursor: not-allowed;
+      }
+
+      .main-schedule-title {
+        font-size: 15pt;
+        font-weight: bold;
+        color: #333333;
+        text-align: center;
+        margin: 5px 0 10px 0;
+        text-transform: uppercase;
+      }
+
+      .sheet-container {
+        width: 100%;
+        display: block;
+        position: relative;
+      }
+
+      .a4-sheet {
+        background-color: var(--card-bg);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        transform-origin: 0 0;
+        transition: transform 0.1s ease-out;
+        flex-shrink: 0;
+        margin: 0 auto;
+      }
+
+      .sheet-landscape {
+        width: 297mm;
+        height: 210mm;
+        padding: 6mm 8mm;
+      }
+      .sheet-portrait {
+        width: 210mm;
+        height: 297mm;
+        padding: 8mm;
+      }
+
+      /* ИЗМЕНЕННАЯ СЕТКА: align-content: start прижимает карточки вверх и не дает им растягиваться на весь А4 */
+      .grid-container {
+        display: grid;
+        align-items: stretch; /* Карточки в одном ряду одной высоты (по самой длинной) */
+        align-content: start; /* Убирает уродливое растягивание до конца страницы */
+        height: 100%;
+      }
+
+      .mode-1x4 {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4mm;
+      }
+      .mode-2x2 {
+        grid-template-columns: 1fr 1fr;
+        gap: 6mm;
+      }
+
+      .week-card {
+        border: 1.5px solid var(--main-blue);
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--card-bg);
+        overflow: hidden;
+      }
+
+      .week-card.type-rs,
+      .week-card.type-special-event {
+        border: 1.5px solid var(--rs-red);
+      }
+      .week-card.type-special-speech {
+        border: 1.5px solid var(--special-border);
+      }
+
+      .week-header {
+        background-color: var(--pastel-blue);
+        padding: 6px;
+        border-bottom: 1.5px solid var(--main-blue);
+        text-align: center;
+      }
+
+      .week-card.type-rs .week-header,
+      .week-card.type-special-event .week-header {
+        background-color: var(--pastel-red);
+        border-bottom: 1.5px solid var(--rs-red);
+      }
+
+      .week-card.type-special-speech .week-header {
+        background-color: var(--special-bg);
+        border-bottom: 1.5px solid var(--special-border);
+      }
+
+      .week-date {
+        font-size: 11pt;
+        font-weight: bold;
+        color: var(--text-blue);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .week-card.type-rs .week-date,
+      .week-card.type-special-event .week-date {
+        color: var(--rs-red);
+      }
+      .week-card.type-special-speech .week-date {
+        color: var(--special-border);
+      }
+
+      /* ОБЩИЙ КОНТЕНТ */
+      .week-body {
+        padding: 8px 8px; /* Увеличен внутренний отступ для "воздуха" */
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .tab-midweek .week-body {
+        font-size: 8pt;
+      }
+      .tab-weekend .week-body {
+        font-size: 9.5pt;
+      }
+
+      .normal-program-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+      }
+
+      /* СЕТКА БУДНЕГО ДНЯ */
+      .row-item {
+        display: flex;
+        align-items: flex-start;
+        line-height: 1.25;
+        margin-bottom: 2.5px;
+        width: 100%;
+      }
+
+      .col-left {
+        font-weight: bold;
+        color: #333333;
+        width: 45%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-right: 5px;
+      }
+
+      .col-time {
+        font-weight: normal;
+        color: #555555;
+        font-style: italic;
+        text-align: center;
+        width: 13%;
+        font-size: 7.5pt;
+        padding: 0 2px;
+      }
+
+      .col-right {
+        font-weight: bold;
+        color: var(--text-blue);
+        text-align: right;
+        width: 42%;
+        word-wrap: break-word;
+        white-space: normal;
+      }
+
+      .tab-midweek.mode-2x2 .col-right {
+        font-size: 8.5pt;
+      }
+
+      /* ЦВЕТА */
+      .text-black {
+        color: #000000 !important;
+      }
+      .rs-text {
+        color: var(--rs-red) !important;
+      }
+      .role-partner .col-left,
+      .role-partner .col-right {
+        color: var(--muted-gray) !important;
+        font-weight: normal;
+      }
+
+      .section-title {
+        font-size: 8.5pt;
+        font-weight: bold;
+        color: #222222;
+        text-transform: uppercase;
+        margin-top: 12px; /* Добавлено больше пробела перед блоками */
+        margin-bottom: 5px;
+        border-bottom: 1px solid var(--border-gray);
+        padding-bottom: 3px;
+      }
+
+      /* СЕТКА ВЫХОДНОГО ДНЯ */
+      .we-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4.5px; /* Немного увеличен интервал между строками */
+        line-height: 1.25;
+        width: 100%;
+      }
+      .we-left {
+        font-weight: bold;
+        color: #333333;
+        width: 40%;
+        padding-right: 5px;
+      }
+      .we-right {
+        font-weight: bold;
+        color: var(--text-blue);
+        width: 60%;
+        text-align: right;
+        word-wrap: break-word;
+      }
+
+      /* Блоки выходного дня */
+      .weekend-block {
+        margin-bottom: 20px;
+      } /* Значительно увеличен пробел между смысловыми частями */
+
+      .weekend-public-speech {
+        display: block;
+        text-align: center;
+        font-weight: bold;
+        color: var(--text-blue);
+        text-transform: uppercase;
+        font-size: 11pt;
+        line-height: 1.25;
+        margin: 6px 0 2px 0;
+        padding: 0 4px;
+      }
+
+      .special-footer-block {
+        margin-top: 12px; /* Чуть больше пробела */
+        margin-bottom: 4px;
+        padding: 4px;
+        border-radius: 4px;
+        background-color: var(--pastel-blue);
+      }
+      .week-card.type-rs .special-footer-block {
+        background-color: var(--pastel-red);
+      }
+
+      .rs-speech-container {
+        margin-top: 4px;
+        margin-bottom: 2px;
+        text-align: center;
+      }
+
+      .rs-speech-title {
+        font-size: 9pt;
+        font-weight: bold;
+        color: var(--rs-red);
+        text-transform: uppercase;
+        white-space: normal;
+        word-wrap: break-word;
+        line-height: 1.2;
+      }
+
+      /* Крупный блок Конгресса/Вечери (Даты сверху, всё красное) */
+      .special-event-container {
+        display: flex;
+        flex-grow: 1;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--pastel-red);
+        padding: 10px;
+        text-align: center;
+        border-radius: 4px;
+        margin: auto 0;
+        min-height: 200px;
+      }
+
+      .special-event-dates {
+        font-size: 16pt;
+        font-weight: 900;
+        color: var(--rs-red);
+        margin-bottom: 8px;
+      }
+
+      .special-event-title {
+        font-size: 14pt;
+        font-weight: bold;
+        color: var(--rs-red);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1.3;
+      }
+
+      .loading,
+      .error {
+        text-align: center;
+        font-size: 14pt;
+        font-weight: bold;
+        padding: 40px;
+        color: #555;
+        grid-column: 1 / -1;
+      }
+
+      @media print {
+        .tabs-container,
+        .controls-panel {
+          display: none !important;
+        }
+        body {
+          background: white;
+          padding: 0;
+        }
+        .a4-sheet {
+          box-shadow: none;
+          margin: 0;
+          transform: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="tabs-container">
+      <button
+        class="tab-btn active"
+        id="tab-midweek"
+        onclick="switchTab('midweek')"
+      >
+        📅 БУДНИЙ ДЕНЬ
+      </button>
+      <button class="tab-btn" id="tab-weekend" onclick="switchTab('weekend')">
+        🗓️ ВЫХОДНОЙ ДЕНЬ
+      </button>
+    </div>
+
+    <div class="page-wrapper">
+      <div class="controls-panel">
+        <div class="btn-group">
+          <button class="btn btn-secondary" onclick="changeMode('1x4')">
+            📋 1х4 (Альбомный)
+          </button>
+          <button class="btn btn-secondary" onclick="changeMode('2x2')">
+            🔲 2х2 (Книжный)
+          </button>
+        </div>
+        <div class="btn-group">
+          <button
+            class="btn btn-navigation"
+            id="btnPrev"
+            onclick="navigateWeeks(-1)"
+          >
+            ◀ Назад
+          </button>
+          <button
+            class="btn btn-navigation"
+            id="btnNext"
+            onclick="navigateWeeks(1)"
+          >
+            Вперед ▶
+          </button>
+        </div>
+        <button class="btn btn-danger" onclick="window.print()">
+          🖨️ Печать / PDF
+        </button>
+      </div>
+
+      <div class="sheet-container tab-midweek" id="mainSheetContainer">
+        <div class="a4-sheet sheet-portrait" id="a4Sheet">
+          <div class="main-schedule-title" id="pageTitle">
+            Наша христианская жизнь и служение
+          </div>
+          <div class="grid-container mode-2x2" id="gridContainer">
+            <div class="loading" id="loading-state">
+              Загрузка актуальных данных из Google Таблицы...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const SPREADSHEET_ID = "1YGBMiX9exB7iRjwSqt9EA75LIG6af9a5DOAtuqvJCIY";
+
+      let scheduleData = { midweek: [], weekend: [] };
+      let currentTab = "midweek";
+      let currentPage = { midweek: 0, weekend: 0 };
+      let currentLayoutMode = "2x2";
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("day") === "weekend") {
+        currentTab = "weekend";
+        document.getElementById("tab-midweek").classList.remove("active");
+        document.getElementById("tab-weekend").classList.add("active");
+        document.getElementById("mainSheetContainer").className =
+          "sheet-container tab-weekend";
+      }
+
+      const getCell = (rows, r, c) =>
+        rows[r] && rows[r].c && rows[r].c[c]
+          ? (rows[r].c[c].f || rows[r].c[c].v || "").toString().trim()
+          : "";
+      const cleanTitle = (raw) =>
+        raw ? raw.trim().replace(/^["'«„]|["'»“]$/g, "") : "";
+      const formatItemName = (raw) => {
+        if (!raw) return "";
+        let c = raw.trim();
+        if (c.startsWith("№") || c.startsWith("#")) return "Пункт " + c;
+        if (/^\d/.test(c)) return "Пункт № " + c;
+        return c;
+      };
+
+      function formatReadableDate(rawDateStr) {
+        if (!rawDateStr) return "";
+        const parts = rawDateStr.split(".");
+        if (parts.length !== 3) return rawDateStr;
+        const day = parseInt(parts[0], 10),
+          month = parseInt(parts[1], 10) - 1,
+          year = parseInt(parts[2], 10);
+        const dateObj = new Date(year, month, day);
+        if (isNaN(dateObj.getTime())) return rawDateStr;
+
+        const formatter = new Intl.DateTimeFormat("ru-RU", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+        let result = formatter.format(dateObj).replace(" г.", " г");
+        const commaIndex = result.indexOf(",");
+        if (commaIndex !== -1) {
+          return (
+            result.substring(0, commaIndex).toUpperCase() +
+            result.substring(commaIndex).toLowerCase().replace(" г", " г.")
+          );
+        }
+        return result;
+      }
+
+      function getChairmanTime(timeStr) {
+        if (!timeStr || !timeStr.includes(":")) return "";
+        let [h, m] = timeStr.split(":").map(Number);
+        if (isNaN(h) || isNaN(m)) return timeStr;
+        let date = new Date(2000, 0, 1, h, m);
+        date.setMinutes(date.getMinutes() - 6);
+        return (
+          date.getHours().toString().padStart(2, "0") +
+          ":" +
+          date.getMinutes().toString().padStart(2, "0")
+        );
+      }
+
+      function getFinalSongTime(chairmanTime) {
+        if (!chairmanTime || !chairmanTime.includes(":")) return "";
+        let [h, m] = chairmanTime.split(":").map(Number);
+        if (isNaN(h) || isNaN(m)) return "";
+        let date = new Date(2000, 0, 1, h, m);
+        date.setMinutes(date.getMinutes() + 100); // 1 час 40 минут
+        return (
+          date.getHours().toString().padStart(2, "0") +
+          ":" +
+          date.getMinutes().toString().padStart(2, "0")
+        );
+      }
+
+      async function loadGoogleData() {
+        const urlMW = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(
+          "Будний_День"
+        )}&tqx=out:json`;
+        const urlWE = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent(
+          "Выходной_День"
+        )}&tqx=out:json`;
+
+        try {
+          const [resMW, resWE] = await Promise.all([
+            fetch(urlMW),
+            fetch(urlWE),
+          ]);
+          const [textMW, textWE] = await Promise.all([
+            resMW.text(),
+            resWE.text(),
+          ]);
+
+          const parseJSON = (txt) =>
+            JSON.parse(
+              txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1)
+            ).table.rows;
+
+          processMidweek(parseJSON(textMW));
+          processWeekend(parseJSON(textWE));
+
+          renderSchedule();
+        } catch (err) {
+          console.error(err);
+          document.getElementById("gridContainer").innerHTML =
+            '<div class="error">Ошибка подключения к Google Таблице. Проверьте ID и права доступа.</div>';
+        }
+      }
+
+      function processMidweek(rows) {
+        let weeks = [];
+        let startCol = 1;
+        if (rows[0] && rows[0].c) {
+          for (let c = 1; c < rows[0].c.length; c++) {
+            let val = getCell(rows, 0, c);
+            if (
+              val === "TRUE" ||
+              val === "true" ||
+              val === true ||
+              val === "1"
+            ) {
+              startCol = c;
+              break;
+            }
+          }
+        }
+
+        let maxCols = rows[1] ? rows[1].c.length : 0;
+        for (let c = startCol; c < maxCols; c++) {
+          let dateStr = getCell(rows, 1, c);
+          if (!dateStr) continue;
+
+          let typeRaw = getCell(rows, 3, c).toLowerCase();
+          let type = "normal";
+          if (typeRaw.includes("районный") || typeRaw.includes("визит"))
+            type = "rs";
+          else if (
+            typeRaw.includes("конгресс") ||
+            typeRaw.includes("вечеря") ||
+            typeRaw.includes("спец. программа")
+          )
+            type = "special-event";
+
+          weeks.push({
+            date: formatReadableDate(dateStr),
+            type: type,
+            chairman: getCell(rows, 4, c),
+            song1: getCell(rows, 5, c),
+            prayer1: getCell(rows, 6, c),
+            treasures: [
+              {
+                time: getCell(rows, 8, c),
+                assign: getCell(rows, 9, c),
+                name: "Пункт № 1",
+              },
+              {
+                time: getCell(rows, 10, c),
+                assign: getCell(rows, 11, c),
+                name: "Духовные жемчужины",
+              },
+              {
+                time: getCell(rows, 12, c),
+                assign: getCell(rows, 13, c),
+                name: "Чтение Библии",
+                isBlack: true,
+              },
+            ],
+            skills: [
+              {
+                name: getCell(rows, 15, c),
+                assign: getCell(rows, 16, c),
+                partner: getCell(rows, 17, c),
+              },
+              {
+                name: getCell(rows, 18, c),
+                assign: getCell(rows, 19, c),
+                partner: getCell(rows, 20, c),
+              },
+              {
+                name: getCell(rows, 21, c),
+                assign: getCell(rows, 22, c),
+                partner: getCell(rows, 23, c),
+              },
+              {
+                name: getCell(rows, 24, c),
+                assign: getCell(rows, 25, c),
+                partner: getCell(rows, 26, c),
+              },
+            ].filter((s) => s.name || s.assign),
+            living: {
+              song2: getCell(rows, 28, c),
+              items: [
+                {
+                  time: getCell(rows, 29, c),
+                  name: formatItemName(getCell(rows, 30, c)),
+                  assign: getCell(rows, 31, c),
+                },
+                {
+                  time: getCell(rows, 32, c),
+                  name: formatItemName(getCell(rows, 33, c)),
+                  assign: getCell(rows, 34, c),
+                },
+              ].filter((i) => i.name || i.assign),
+              bibleStudy: {
+                time: getCell(rows, 36, c),
+                conductor: getCell(rows, 37, c),
+                reader: getCell(rows, 38, c),
+              },
+              rsSpeech: {
+                assign: getCell(rows, 43, c),
+                title: cleanTitle(getCell(rows, 44, c)),
+              },
+            },
+            footer: {
+              song3:
+                type === "rs" ? getCell(rows, 45, c) : getCell(rows, 40, c),
+              prayer2:
+                type === "rs" ? getCell(rows, 46, c) : getCell(rows, 41, c),
+            },
+            special: {
+              title: getCell(rows, 48, c),
+              dates: getCell(rows, 49, c),
+            },
+          });
+        }
+        scheduleData.midweek = weeks;
+      }
+
+      function processWeekend(rows) {
+        let weeks = [];
+        let startCol = 1;
+        if (rows[0] && rows[0].c) {
+          for (let c = 1; c < rows[0].c.length; c++) {
+            let val = getCell(rows, 0, c);
+            if (
+              val === "TRUE" ||
+              val === "true" ||
+              val === true ||
+              val === "1"
+            ) {
+              startCol = c;
+              break;
+            }
+          }
+        }
+
+        let maxCols = rows[1] ? rows[1].c.length : 0;
+        for (let c = startCol; c < maxCols; c++) {
+          let dateStr = getCell(rows, 1, c);
+          if (!dateStr) continue;
+
+          let typeRaw = getCell(rows, 3, c).toLowerCase();
+          let type = "normal";
+          if (typeRaw.includes("районный")) type = "rs";
+          else if (typeRaw.includes("спец. речь")) type = "special-speech";
+          else if (
+            typeRaw.includes("конгресс") ||
+            typeRaw.includes("вечеря") ||
+            typeRaw.includes("спец. программа")
+          )
+            type = "special-event";
+
+          weeks.push({
+            date: formatReadableDate(dateStr),
+            type: type,
+            chairman: getCell(rows, 4, c),
+            song1: getCell(rows, 5, c),
+            prayer1: getCell(rows, 6, c),
+            publicSpeech: {
+              assign: getCell(rows, 8, c),
+              title: cleanTitle(getCell(rows, 9, c)),
+            },
+            wt: {
+              conductor: getCell(rows, 11, c),
+              reader: getCell(rows, 12, c),
+            },
+            footer: {
+              song: getCell(rows, 14, c),
+              prayer: getCell(rows, 15, c),
+            },
+            rs: {
+              name: getCell(rows, 17, c),
+              speech1: cleanTitle(getCell(rows, 18, c)),
+              speech2: cleanTitle(getCell(rows, 19, c)),
+              song: getCell(rows, 20, c),
+              prayer: getCell(rows, 21, c),
+            },
+            special: {
+              title: getCell(rows, 23, c),
+              dates: getCell(rows, 24, c),
+            },
+          });
+        }
+        scheduleData.weekend = weeks;
+      }
+
+      function renderSchedule() {
+        const container = document.getElementById("gridContainer");
+        container.innerHTML = "";
+        const currentData = scheduleData[currentTab];
+
+        if (!currentData || currentData.length === 0) {
+          container.innerHTML =
+            '<div class="loading">Нет данных для отображения.</div>';
+          return;
+        }
+
+        const startIndex = currentPage[currentTab] * 4;
+        const currentWeeks = currentData.slice(startIndex, startIndex + 4);
+
+        currentWeeks.forEach((week) => {
+          const card = document.createElement("div");
+          card.className = `week-card type-${week.type}`;
+
+          // Шапка (для спец. речи просто дата)
+          card.innerHTML = `<div class="week-header"><span class="week-date">${week.date}</span></div>`;
+
+          const body = document.createElement("div");
+          body.className = "week-body";
+
+          if (week.type === "special-event") {
+            body.innerHTML = `
+                        <div class="special-event-container">
+                            <div class="special-event-dates">${week.special.dates}</div>
+                            <div class="special-event-title">${week.special.title}</div>
+                        </div>
+                    `;
+            card.appendChild(body);
+            container.appendChild(card);
+            return;
+          }
+
+          if (currentTab === "midweek") {
+            const chairmanTime = getChairmanTime(week.treasures[0]?.time);
+            const finalSongTime = getFinalSongTime(chairmanTime);
+
+            let tHtml = week.treasures
+              .map(
+                (t) =>
+                  `<div class="row-item"><div class="col-left">${
+                    t.name
+                  }</div><div class="col-time">${
+                    t.time
+                  }</div><div class="col-right ${
+                    t.isBlack ? "text-black" : ""
+                  }">${t.assign}</div></div>`
+              )
+              .join("");
+
+            let sHtml = "";
+            week.skills.forEach((s) => {
+              sHtml += `<div class="row-item"><div class="col-left" title="${s.name}">${s.name}</div><div class="col-time"></div><div class="col-right text-black">${s.assign}</div></div>`;
+              if (s.partner) {
+                sHtml += `<div class="row-item role-partner"><div class="col-left">Партнер</div><div class="col-time"></div><div class="col-right">${s.partner}</div></div>`;
+              }
+            });
+
+            let lHtml = week.living.items
+              .map(
+                (i) =>
+                  `<div class="row-item"><div class="col-left">${i.name}</div><div class="col-time">${i.time}</div><div class="col-right">${i.assign}</div></div>`
+              )
+              .join("");
+
+            let specHtml =
+              week.type === "rs"
+                ? `
+                        <div class="special-footer-block" style="margin-top: 10px;">
+                            <div class="row-item"><div class="col-left rs-text">Выступление РС</div><div class="col-time"></div><div class="col-right">${
+                              week.living.rsSpeech.assign
+                            }</div></div>
+                            <div class="rs-speech-container"><div class="rs-speech-title">${
+                              week.living.rsSpeech.title
+                                ? `"${week.living.rsSpeech.title}"`
+                                : "&nbsp;"
+                            }</div></div>
+                        </div>
+                    `
+                : `
+                        <div class="special-footer-block">
+                            <div class="row-item"><div class="col-left">Изучение Библии</div><div class="col-time">${week.living.bibleStudy.time}</div><div class="col-right">${week.living.bibleStudy.conductor}</div></div>
+                            <div class="row-item"><div class="col-left">Чтец</div><div class="col-time"></div><div class="col-right">${week.living.bibleStudy.reader}</div></div>
+                        </div>
+                    `;
+
+            body.innerHTML = `
+                        <div class="normal-program-wrapper">
+                            <div class="row-item"><div class="col-left">Председатель</div><div class="col-time">${chairmanTime}</div><div class="col-right">${week.chairman}</div></div>
+                            <div class="row-item"><div class="col-left">Песня</div><div class="col-time"></div><div class="col-right">№ ${week.song1}</div></div>
+                            <div class="row-item"><div class="col-left">Вступ. молитва</div><div class="col-time"></div><div class="col-right">${week.prayer1}</div></div>
+                            
+                            <div class="section-title">💎 📜 СОКРОВИЩА ИЗ СЛОВА БОГА</div>
+                            ${tHtml}
+
+                            <div class="section-title">📢 💼 ОТТАЧИВАЕМ НАВЫКИ СЛУЖЕНИЯ</div>
+                            <div class="skills-container">${sHtml}</div>
+
+                            <div class="section-title">🌳 🌄 ХРИСТИАНСКАЯ ЖИЗНЬ</div>
+                            <div class="cl-container">
+                                <div class="row-item"><div class="col-left">Песня</div><div class="col-time"></div><div class="col-right">№ ${week.living.song2}</div></div>
+                                ${lHtml}
+                                ${specHtml}
+                            </div>
+                            
+                            <div style="margin-top: 12px;">
+                                <div class="row-item"><div class="col-left">Песня</div><div class="col-time">${finalSongTime}</div><div class="col-right">№ ${week.footer.song3}</div></div>
+                                <div class="row-item"><div class="col-left">Закл. молитва</div><div class="col-time"></div><div class="col-right">${week.footer.prayer2}</div></div>
+                            </div>
+                        </div>
+                    `;
+          }
+          // ВЫХОДНОЙ ДЕНЬ
+          else {
+            let mainContent = "";
+
+            if (week.type === "rs") {
+              mainContent = `
+                            <div class="weekend-block">
+                                <div class="we-row"><div class="we-left rs-text">Публичная речь</div><div class="we-right rs-text">${week.rs.name}</div></div>
+                                <div class="weekend-public-speech rs-text">«${week.rs.speech1}»</div>
+                            </div>
+                            
+                            <div class="weekend-block">
+                                <div class="section-title" style="margin-top: 0;">Изучение «Сторожевой Башни»</div>
+                                <div class="we-row"><div class="we-left">Ведущий</div><div class="we-right">${week.wt.conductor}</div></div>
+                                <div class="we-row"><div class="we-left">Чтец</div><div class="we-right">${week.wt.reader}</div></div>
+                            </div>
+                            
+                            <div class="weekend-block" style="margin-bottom: 0;">
+                                <div class="we-row"><div class="we-left rs-text">Заключ. речь</div><div class="we-right rs-text">${week.rs.name}</div></div>
+                                <div class="weekend-public-speech rs-text">«${week.rs.speech2}»</div>
+                                <div class="we-row" style="margin-top: 10px;"><div class="we-left">Песня</div><div class="we-right">№ ${week.rs.song}</div></div>
+                                <div class="we-row"><div class="we-left">Закл. молитва</div><div class="we-right">${week.rs.prayer}</div></div>
+                            </div>
+                        `;
+            } else if (week.type === "special-speech") {
+              mainContent = `
+                            <div class="weekend-block">
+                                <div class="we-row"><div class="we-left rs-text">СПЕЦ. РЕЧЬ</div><div class="we-right rs-text">${week.publicSpeech.assign}</div></div>
+                                <div class="weekend-public-speech rs-text">«${week.publicSpeech.title}»</div>
+                            </div>
+                            
+                            <div class="weekend-block" style="margin-bottom: 0;">
+                                <div class="section-title" style="margin-top: 0;">Изучение «Сторожевой Башни»</div>
+                                <div class="we-row"><div class="we-left">Ведущий</div><div class="we-right">${week.wt.conductor}</div></div>
+                                <div class="we-row"><div class="we-left">Чтец</div><div class="we-right">${week.wt.reader}</div></div>
+                                <div class="we-row" style="margin-top: 10px;"><div class="we-left">Песня</div><div class="we-right">№ ${week.footer.song}</div></div>
+                                <div class="we-row"><div class="we-left">Закл. молитва</div><div class="we-right">${week.footer.prayer}</div></div>
+                            </div>
+                        `;
+            } else {
+              mainContent = `
+                            <div class="weekend-block">
+                                <div class="we-row"><div class="we-left">Публичная речь</div><div class="we-right">${week.publicSpeech.assign}</div></div>
+                                <div class="weekend-public-speech">«${week.publicSpeech.title}»</div>
+                            </div>
+                            
+                            <div class="weekend-block" style="margin-bottom: 0;">
+                                <div class="section-title" style="margin-top: 0;">Изучение «Сторожевой Башни»</div>
+                                <div class="we-row"><div class="we-left">Ведущий</div><div class="we-right">${week.wt.conductor}</div></div>
+                                <div class="we-row"><div class="we-left">Чтец</div><div class="we-right">${week.wt.reader}</div></div>
+                                <div class="we-row" style="margin-top: 10px;"><div class="we-left">Песня</div><div class="we-right">№ ${week.footer.song}</div></div>
+                                <div class="we-row"><div class="we-left">Закл. молитва</div><div class="we-right">${week.footer.prayer}</div></div>
+                            </div>
+                        `;
+            }
+
+            body.innerHTML = `
+                        <div class="normal-program-wrapper">
+                            <div class="weekend-block" style="margin-bottom: 16px; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px;">
+                                <div class="we-row"><div class="we-left">Председатель</div><div class="we-right">${week.chairman}</div></div>
+                                <div class="we-row"><div class="we-left">Песня</div><div class="we-right">№ ${week.song1}</div></div>
+                                <div class="we-row"><div class="we-left">Вступ. молитва</div><div class="we-right">${week.prayer1}</div></div>
+                            </div>
+                            ${mainContent}
+                        </div>
+                    `;
+          }
+
+          card.appendChild(body);
+          container.appendChild(card);
+        });
+
+        updateNavigationButtons();
+        adjustMobileScale(currentLayoutMode);
+        if (currentTab === "midweek") setTimeout(syncSkillsHeight, 20);
+      }
+
+      function switchTab(tab) {
+        currentTab = tab;
+        document
+          .getElementById("tab-midweek")
+          .classList.toggle("active", tab === "midweek");
+        document
+          .getElementById("tab-weekend")
+          .classList.toggle("active", tab === "weekend");
+        document.getElementById("mainSheetContainer").className =
+          "sheet-container tab-" + tab;
+        document.getElementById("pageTitle").innerText =
+          tab === "midweek"
+            ? "Наша христианская жизнь и служение"
+            : "Публичная встреча и Изучение Сторожевой башни";
+
+        const url = new URL(window.location);
+        url.searchParams.set("day", tab);
+        window.history.replaceState({}, "", url);
+        renderSchedule();
+      }
+
+      function navigateWeeks(direction) {
+        const newPage = currentPage[currentTab] + direction;
+        const maxPages = Math.ceil((scheduleData[currentTab] || []).length / 4);
+        if (newPage >= 0 && newPage < maxPages) {
+          currentPage[currentTab] = newPage;
+          renderSchedule();
+        }
+      }
+
+      function updateNavigationButtons() {
+        const btnPrev = document.getElementById("btnPrev");
+        const btnNext = document.getElementById("btnNext");
+        const maxPages = Math.ceil((scheduleData[currentTab] || []).length / 4);
+        btnPrev.disabled = currentPage[currentTab] === 0;
+        btnNext.disabled =
+          currentPage[currentTab] >= maxPages - 1 || maxPages === 0;
+      }
+
+      function changeMode(mode) {
+        currentLayoutMode = mode;
+        const container = document.getElementById("gridContainer");
+        const sheet = document.getElementById("a4Sheet");
+        const style = document.createElement("style");
+
+        if (mode === "1x4") {
+          container.className = "grid-container mode-1x4";
+          sheet.className = "a4-sheet sheet-landscape";
+          style.innerHTML = "@page { size: A4 landscape; margin: 0; }";
+        } else {
+          container.className = "grid-container mode-2x2";
+          sheet.className = "a4-sheet sheet-portrait";
+          style.innerHTML = "@page { size: A4 portrait; margin: 0; }";
+        }
+
+        const oldStyle = document.getElementById("print-page-size");
+        if (oldStyle) oldStyle.remove();
+        style.id = "print-page-size";
+        document.head.appendChild(style);
+
+        adjustMobileScale(mode);
+        if (currentTab === "midweek") setTimeout(syncSkillsHeight, 50);
+      }
+
+      function adjustMobileScale(currentMode) {
+        const sheet = document.getElementById("a4Sheet");
+        if (!sheet) return;
+
+        const mode =
+          currentMode ||
+          (sheet.classList.contains("sheet-landscape") ? "1x4" : "2x2");
+        const targetWidth = mode === "1x4" ? 1122 : 793;
+        const targetHeight = mode === "1x4" ? 793 : 1122;
+
+        if (window.innerWidth < targetWidth + 20) {
+          const scale = (window.innerWidth - 10) / targetWidth;
+          sheet.style.transform = `scale(${scale})`;
+          sheet.style.marginBottom = `calc(${targetHeight}px * (${scale} - 1))`;
+          const leftOffset = (window.innerWidth - targetWidth * scale) / 2;
+          sheet.style.marginLeft = `${leftOffset}px`;
+        } else {
+          sheet.style.transform = "none";
+          sheet.style.marginBottom = "0px";
+          sheet.style.marginLeft = "auto";
+        }
+      }
+
+      function syncSkillsHeight() {
+        const containers = document.querySelectorAll(".skills-container");
+        if (containers.length === 0) return;
+        containers.forEach((c) => (c.style.height = "auto"));
+        const isLandscape = document
+          .getElementById("a4Sheet")
+          .classList.contains("sheet-landscape");
+
+        if (isLandscape) {
+          let maxHeight = 0;
+          containers.forEach((c) => {
+            if (c.offsetHeight > maxHeight) maxHeight = c.offsetHeight;
+          });
+          containers.forEach((c) => (c.style.height = maxHeight + "px"));
+        } else {
+          const row1 = [containers[0], containers[1]],
+            row2 = [containers[2], containers[3]];
+          [row1, row2].forEach((row) => {
+            let maxHeight = 0;
+            row.forEach((c) => {
+              if (c && c.offsetHeight > maxHeight) maxHeight = c.offsetHeight;
+            });
+            row.forEach((c) => {
+              if (c) c.style.height = maxHeight + "px";
+            });
+          });
+        }
+      }
+
+      window.addEventListener("resize", () => {
+        adjustMobileScale(currentLayoutMode);
+        if (currentTab === "midweek") syncSkillsHeight();
+      });
+      document.addEventListener("DOMContentLoaded", () => {
+        changeMode("2x2");
+        loadGoogleData();
+      });
+    </script>
+  </body>
+</html>
